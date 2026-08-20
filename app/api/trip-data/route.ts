@@ -2,6 +2,7 @@ import { findCampgrounds } from "../../../lib/services/campgrounds";
 import { findEvents } from "../../../lib/services/events";
 import { routeBetween } from "../../../lib/services/routing";
 import { getWeather } from "../../../lib/services/weather";
+import { logProviderError } from "../../../lib/services/http";
 import type { Coordinates,LiveTripData } from "../../../lib/types";
 export const runtime="edge";
 export async function POST(request:Request){
@@ -16,5 +17,5 @@ export async function POST(request:Request){
   ]);
   const result:LiveTripData={weather,route,campgrounds,events,updatedAt:new Date().toISOString()};
   return Response.json(result,{headers:{"Cache-Control":"public, max-age=900"}});
- }catch{return Response.json({error:"Unable to load live trip data"},{status:502})}
+ }catch(error){logProviderError("trip-data","request",error);return Response.json({error:"Unable to load live trip data"},{status:502})}
 }

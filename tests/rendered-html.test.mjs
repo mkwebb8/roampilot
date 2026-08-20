@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { recommendTrips } from "../lib/recommendations.ts";
 import { defaultFilters, trips } from "../lib/seed.ts";
+import { mergeProviderCandidates, qualifyRoutes } from "../lib/services/route-resilience.ts";
 
 async function requestWorker(path = "/", init) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -76,4 +77,48 @@ test("discovery clearly labels curated fallback when provider keys are absent", 
   assert.equal(data.mode, "fallback");
   assert.match(data.message, /curated fallback/i);
   assert.deepEqual(data.providers.map(({ status }) => status), ["missing_key", "missing_key"]);
+});
+
+test("routing provider 502 falls back to a conservative estimate", async () => {
+  const candidate = { id: "one", name: "Nearby Park", coordinates: { latitude: 38.2, longitude: -85.8 } };
+  const results = await qualifyRoutes([candidate], "Home", { latitude: 38, longitude: -86 }, 240, async () => {
+    throw new Error("OSRM returned 502");
+  });
+
+  assert.equal(results.length, 1);
+  assert.equal(results[0].routeSource, "estimated");
+  assert.equal(results[0].route.source, "estimate");
+  assert.match(results[0].routeError.message, /502/);
+});
+
+test("mixed routing responses retain both live and estimated destinations", async () => {
+  const candidates = [
+    { id: "live", name: "Live Park", coordinates: { latitude: 38.1, longitude: -85.9 } },
+    { id: "estimated", name: "Estimated Park", coordinates: { latitude: 38.3, longitude: -85.7 } },
+  ];
+  const results = await qualifyRoutes(candidates, "Home", { latitude: 38, longitude: -86 }, 240, async (candidate) => {
+    if (candidate.id === "estimated") throw new Error("Temporary failure");
+    return { from: "Home", to: candidate.name, distanceMiles: 20, driveMinutes: 30, source: "live" };
+  });
+
+  assert.deepEqual(results.map(({ routeSource }) => routeSource), ["live", "estimated"]);
+});
+
+test("increasing drive time returns more NPS candidates when routes are estimated", async () => {
+  const origin = { latitude: 38, longitude: -86 };
+  const candidates = [
+    { id: "near", name: "Near NPS", coordinates: { latitude: 38.2, longitude: -86 } },
+    { id: "middle", name: "Middle NPS", coordinates: { latitude: 39.2, longitude: -86 } },
+    { id: "far", name: "Far NPS", coordinates: { latitude: 40.5, longitude: -86 } },
+  ];
+  const unavailable = async () => { throw new Error("OSRM unavailable"); };
+  const shortWindow = await qualifyRoutes(candidates, "Home", origin, 120, unavailable);
+  const longWindow = await qualifyRoutes(candidates, "Home", origin, 480, unavailable);
+
+  assert.ok(longWindow.length > shortWindow.length);
+});
+
+test("empty RIDB response does not remove NPS candidates", () => {
+  const nps = [{ id: "nps-one", name: "NPS Park", coordinates: { latitude: 38, longitude: -85 } }];
+  assert.deepEqual(mergeProviderCandidates(nps, []), nps);
 });
