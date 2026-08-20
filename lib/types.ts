@@ -10,3 +10,7 @@ export interface RoadStop {id:string;name:string;type:string;minutesAhead:number
 export interface ItineraryStop {id:string;place:string;nights:number}
 export interface RouteLeg {from:string;to:string;distanceMiles:number;driveMinutes:number;source:"live"|"estimate"}
 export interface LiveTripData {weather?:{label:string;high:number;low:number;source:string};route?:{distanceMiles:number;driveMinutes:number;source:string};campgrounds?:string[];events?:string[];updatedAt:string}
+export type DiscoveryProvider="nps"|"ridb";
+export type DiscoveryMode="live"|"partial"|"fallback"|"empty"|"error";
+export interface DiscoveryProviderStatus {provider:DiscoveryProvider;status:"ok"|"missing_key"|"error";count:number;message?:string}
+export interface DiscoveryResponse {trips:Trip[];mode:DiscoveryMode;providers:DiscoveryProviderStatus[];message:string;cached:boolean;updatedAt:string}

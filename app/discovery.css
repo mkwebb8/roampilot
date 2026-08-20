@@ -1,0 +1,28 @@
+.discovery-state,
+.provider-notice {
+  grid-column: 1 / -1;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--paper);
+  padding: 18px;
+}
+
+.discovery-state p,
+.provider-notice p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.loading-state { background: #eee5d8; }
+.error-state { border-color: #c47c72; background: #f8e9e6; }
+.error-state button { margin-top: 12px; border: 0; border-radius: 10px; background: var(--ink); color: white; padding: 10px 14px; font-weight: 800; }
+.provider-notice > b { color: var(--bronze); font-size: 9px; letter-spacing: .16em; }
+.provider-notice > div { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 12px; }
+.provider-notice span { border-radius: 99px; background: #ece7de; padding: 6px 9px; font-size: 9px; text-transform: uppercase; }
+.provider-notice span.ok { background: #dfeadd; color: #345331; }
+.provider-notice span.error { background: #f1deda; color: #7a3730; }
+.provider-notice.fallback { border-color: #b89971; background: #f0e6d7; }
+.provider-notice.partial { border-color: #c7a55f; background: #f5edda; }
+.cta:disabled { cursor: wait; opacity: .65; }
