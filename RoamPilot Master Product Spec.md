@@ -3,7 +3,7 @@
 **Document status:** Living source of truth  
 **Created:** August 20, 2026  
 **Product:** RoamPilot RV  
-**Current build status:** Phase 1B validation-stage production candidate  
+**Current build status:** Phase 1B validation walkthrough complete; awaiting product-owner phase approval  
 
 ## Purpose of this document
 
@@ -28,13 +28,13 @@ When this document conflicts with an older chat, summary, prototype note, or inf
 ## Snapshot
 
 **Snapshot date:** August 22, 2026  
-**Overall status:** Phase 1B validation-stage production candidate  
+**Overall status:** Phase 1B validation walkthrough complete; awaiting product-owner phase approval  
 **Repository:** https://github.com/mkwebb8/roampilot  
 **Live app:** https://roampilot-rv.mkwebb8.chatgpt.site  
 **Deployed production candidate:** Sites version 7 at Git commit `1827ba0` — Fix duplicate OAuth PKCE exchange
 **Hosted access:** Private, owner-only
 
-The version 7 production application and its validated source use commit `1827ba0`. Google authentication has completed successfully in production. Phase 1B remains at the product-owner review gate until the remaining cloud-product walkthrough is reviewed, and must not advance automatically into Phase 2.
+The version 7 production application and its validated source use commit `1827ba0`. Google authentication, household onboarding, Owner authorization, cloud My Rig persistence, saved-trip persistence/reopening, same-account cross-device synchronization, household export, sign-out, and repeat sign-in have completed successfully in production. Genuine second-user invitations and disposable-account deletion testing are explicitly deferred because the current Sites deployment remains owner-only. Phase 1B awaits formal product-owner approval and must not advance automatically into Phase 2.
 
 ## Phase 1B validation-stage decision
 
@@ -1754,6 +1754,17 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - After the provider correction, Supabase logged a successful Google callback, user creation/login, and HTTP 200 PKCE token exchange. The callback page then displayed a false failure because URL auto-detection and the page's explicit exchange both attempted to consume the same authorization code and verifier.
 - Set `detectSessionInUrl: false` only on the dedicated callback client so that the existing explicit `exchangeCodeForSession` call is the single owner of the PKCE exchange. No PKCE, callback validation, session persistence, or provider security check was weakened.
 - Lint, type checking, production build, and all 15 automated tests passed. Sites version 7 at commit `1827ba0` was deployed successfully, and the product owner confirmed Google login works in production.
+
+## August 22, 2026 — Phase 1B product-owner production walkthrough
+
+- Household onboarding passed with household **The Webb's** and the authenticated creator correctly assigned the **Owner** role.
+- My Rig cloud persistence passed by changing the towing fuel-mileage value, saving, refreshing, and confirming the saved value remained.
+- Saved-trip persistence passed with **George Rogers Clark National Historical Park**; the saved trip remained after refresh and reopened successfully.
+- Same-Google-account cross-device synchronization passed for the household, rig data, saved trip, and reopened trip detail.
+- Account panel validation passed for Google identity, household, Owner role, household-data export, sign-out, repeat sign-in, and retained cloud data.
+- Genuine second-user invitation testing was deferred because the Sites deployment remains intentionally owner-only. No Sites access change was made.
+- Account deletion testing was deferred because no disposable second account can safely complete the current owner-only access path. The active Owner account and **The Webb's** household were not put at risk.
+- Phase 1B validation-stage checkpoints are complete within the approved gate. Formal phase closure requires explicit product-owner approval; Phase 2 and Friends & Family Alpha access work have not begun.
 - Deployed the owner-only candidate as Sites version 6 from Git commit `65ec3c2` and pushed the same commit to GitHub `main`.
 - Verified the production route and safe cloud configuration through the owner access boundary; interactive Google identity and cross-device product review remain for the product owner.
 
