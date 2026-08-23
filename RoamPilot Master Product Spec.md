@@ -31,10 +31,10 @@ When this document conflicts with an older chat, summary, prototype note, or inf
 **Overall status:** Phase 1B validation-stage production candidate  
 **Repository:** https://github.com/mkwebb8/roampilot  
 **Live app:** https://roampilot-rv.mkwebb8.chatgpt.site  
-**Deployed production candidate:** Sites version 6 at Git commit `65ec3c2` — Add Phase 1B accounts and cloud foundation
+**Deployed production candidate:** Sites version 7 at Git commit `1827ba0` — Fix duplicate OAuth PKCE exchange
 **Hosted access:** Private, owner-only
 
-The version 6 production application and its validated source use commit `65ec3c2`. Later documentation-only commits may advance GitHub `main` without changing the deployed application. Phase 1B is at the product-owner review gate and must not be declared complete or advance automatically into Phase 2.
+The version 7 production application and its validated source use commit `1827ba0`. Google authentication has completed successfully in production. Phase 1B remains at the product-owner review gate until the remaining cloud-product walkthrough is reviewed, and must not advance automatically into Phase 2.
 
 ## Phase 1B validation-stage decision
 
@@ -571,13 +571,13 @@ The application is deployed at https://roampilot-rv.mkwebb8.chatgpt.site.
 Current production candidate:
 
 - Site is active
-- Latest hosted version is version 6 at commit `65ec3c2`
+- Latest hosted version is version 7 at commit `1827ba0`
 - Access is custom and owner-only
 - No external visitors or allowed groups
 - No D1 or R2 storage
 - Supabase runtime configuration points only to the dedicated RoamPilot project
 
-Production smoke testing confirms HTTP 200 through the owner-only boundary, the runtime cloud configuration is active, it points to `RoamPilot-Production`, and the public configuration response exposes no service-role or secret key. The final interactive Google sign-in, first-household onboarding, synchronized rig/save flow, and account lifecycle walkthrough require the product owner's Google identity and remain the explicit product-owner review checklist.
+Production smoke testing confirms HTTP 200 through the owner-only boundary, the runtime cloud configuration is active, it points to `RoamPilot-Production`, and the public configuration response exposes no service-role or secret key. Interactive Google sign-in succeeded on August 22, 2026 after correcting the Google OAuth client secret and deploying a callback fix that prevents two competing PKCE code exchanges. First-household onboarding, synchronized rig/save flow, and the account lifecycle walkthrough remain the explicit product-owner review checklist.
 
 ## Mobile and responsive status
 
@@ -1747,6 +1747,13 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - Restricted the validation UI to Google sign-in and clearly labeled the deferred authentication paths.
 - Preserved the separate routing gate and made no RV-safe routing claim or provider integration.
 - Updated Current Build to reflect the Phase 1B production candidate; deployment and production validation remain part of the active gate.
+
+## August 22, 2026 — Production Google OAuth correction
+
+- Production auth initially failed because Supabase contained an invalid Google OAuth client secret. The product owner replaced it without exposing the credential in project files or chat.
+- After the provider correction, Supabase logged a successful Google callback, user creation/login, and HTTP 200 PKCE token exchange. The callback page then displayed a false failure because URL auto-detection and the page's explicit exchange both attempted to consume the same authorization code and verifier.
+- Set `detectSessionInUrl: false` only on the dedicated callback client so that the existing explicit `exchangeCodeForSession` call is the single owner of the PKCE exchange. No PKCE, callback validation, session persistence, or provider security check was weakened.
+- Lint, type checking, production build, and all 15 automated tests passed. Sites version 7 at commit `1827ba0` was deployed successfully, and the product owner confirmed Google login works in production.
 - Deployed the owner-only candidate as Sites version 6 from Git commit `65ec3c2` and pushed the same commit to GitHub `main`.
 - Verified the production route and safe cloud configuration through the owner access boundary; interactive Google identity and cross-device product review remain for the product owner.
 
