@@ -3,7 +3,7 @@
 **Document status:** Living source of truth  
 **Created:** August 20, 2026  
 **Product:** RoamPilot RV  
-**Current build status:** Phase 1B validation walkthrough complete; awaiting product-owner phase approval  
+**Current build status:** Phase 1B approved and complete  
 
 ## Purpose of this document
 
@@ -28,13 +28,13 @@ When this document conflicts with an older chat, summary, prototype note, or inf
 ## Snapshot
 
 **Snapshot date:** August 22, 2026  
-**Overall status:** Phase 1B validation walkthrough complete; awaiting product-owner phase approval  
+**Overall status:** Phase 1B approved and complete  
 **Repository:** https://github.com/mkwebb8/roampilot  
 **Live app:** https://roampilot-rv.mkwebb8.chatgpt.site  
 **Deployed production candidate:** Sites version 7 at Git commit `1827ba0` — Fix duplicate OAuth PKCE exchange
 **Hosted access:** Private, owner-only
 
-The version 7 production application and its validated source use commit `1827ba0`. Google authentication, household onboarding, Owner authorization, cloud My Rig persistence, saved-trip persistence/reopening, same-account cross-device synchronization, household export, sign-out, and repeat sign-in have completed successfully in production. Genuine second-user invitations and disposable-account deletion testing are explicitly deferred because the current Sites deployment remains owner-only. Phase 1B awaits formal product-owner approval and must not advance automatically into Phase 2.
+The version 7 production application and its validated source use commit `1827ba0`. Google authentication, household onboarding, Owner authorization, cloud My Rig persistence, saved-trip persistence/reopening, same-account cross-device synchronization, household export, sign-out, and repeat sign-in have completed successfully in production. Genuine second-user invitations and disposable-account deletion testing are explicitly deferred because the current Sites deployment remains owner-only. The product owner formally approved and closed Phase 1B on August 22, 2026. Phase 2 has not begun.
 
 ## Phase 1B validation-stage decision
 
@@ -1765,6 +1765,7 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - Genuine second-user invitation testing was deferred because the Sites deployment remains intentionally owner-only. No Sites access change was made.
 - Account deletion testing was deferred because no disposable second account can safely complete the current owner-only access path. The active Owner account and **The Webb's** household were not put at risk.
 - Phase 1B validation-stage checkpoints are complete within the approved gate. Formal phase closure requires explicit product-owner approval; Phase 2 and Friends & Family Alpha access work have not begun.
+- The product owner subsequently approved Phase 1B. The phase is closed; Friends & Family Alpha access evaluation is the next review activity, and neither access changes nor Phase 2 implementation are authorized by this approval.
 - Deployed the owner-only candidate as Sites version 6 from Git commit `65ec3c2` and pushed the same commit to GitHub `main`.
 - Verified the production route and safe cloud configuration through the owner access boundary; interactive Google identity and cross-device product review remain for the product owner.
 
