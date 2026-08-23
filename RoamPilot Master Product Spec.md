@@ -31,10 +31,10 @@ When this document conflicts with an older chat, summary, prototype note, or inf
 **Overall status:** Phase 1B validation-stage production candidate  
 **Repository:** https://github.com/mkwebb8/roampilot  
 **Live app:** https://roampilot-rv.mkwebb8.chatgpt.site  
-**Deployed baseline before the Phase 1B candidate:** Sites version 5 at Git commit `e61a8af` — Harden live discovery routing  
+**Deployed production candidate:** Sites version 6 at Git commit `65ec3c2` — Add Phase 1B accounts and cloud foundation
 **Hosted access:** Private, owner-only
 
-The committed `main` branch matches the version 5 deployment. The local working tree contains the Phase 1B accounts-and-cloud candidate described below; it must pass the phase deployment and production-test gate before Phase 1B is declared complete.
+The version 6 production application and its validated source use commit `65ec3c2`. Later documentation-only commits may advance GitHub `main` without changing the deployed application. Phase 1B is at the product-owner review gate and must not be declared complete or advance automatically into Phase 2.
 
 ## Phase 1B validation-stage decision
 
@@ -568,16 +568,16 @@ Apple and six-digit email OTP remain long-term V1 requirements. Their applicatio
 
 The application is deployed at https://roampilot-rv.mkwebb8.chatgpt.site.
 
-Pre-candidate baseline:
+Current production candidate:
 
 - Site is active
-- Latest hosted baseline is version 5 at commit `e61a8af`
+- Latest hosted version is version 6 at commit `65ec3c2`
 - Access is custom and owner-only
 - No external visitors or allowed groups
 - No D1 or R2 storage
 - Supabase runtime configuration points only to the dedicated RoamPilot project
 
-This section must be updated with the new Sites version and production-test outcome after the validation candidate is deployed.
+Production smoke testing confirms HTTP 200 through the owner-only boundary, the runtime cloud configuration is active, it points to `RoamPilot-Production`, and the public configuration response exposes no service-role or secret key. The final interactive Google sign-in, first-household onboarding, synchronized rig/save flow, and account lifecycle walkthrough require the product owner's Google identity and remain the explicit product-owner review checklist.
 
 ## Mobile and responsive status
 
@@ -1747,6 +1747,8 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - Restricted the validation UI to Google sign-in and clearly labeled the deferred authentication paths.
 - Preserved the separate routing gate and made no RV-safe routing claim or provider integration.
 - Updated Current Build to reflect the Phase 1B production candidate; deployment and production validation remain part of the active gate.
+- Deployed the owner-only candidate as Sites version 6 from Git commit `65ec3c2` and pushed the same commit to GitHub `main`.
+- Verified the production route and safe cloud configuration through the owner access boundary; interactive Google identity and cross-device product review remain for the product owner.
 
 ## August 20, 2026 — Phase 1A research and architecture completed
 
