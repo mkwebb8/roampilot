@@ -1766,8 +1766,79 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - Account deletion testing was deferred because no disposable second account can safely complete the current owner-only access path. The active Owner account and **The Webb's** household were not put at risk.
 - Phase 1B validation-stage checkpoints are complete within the approved gate. Formal phase closure requires explicit product-owner approval; Phase 2 and Friends & Family Alpha access work have not begun.
 - The product owner subsequently approved Phase 1B. The phase is closed; Friends & Family Alpha access evaluation is the next review activity, and neither access changes nor Phase 2 implementation are authorized by this approval.
-- Deployed the owner-only candidate as Sites version 6 from Git commit `65ec3c2` and pushed the same commit to GitHub `main`.
-- Verified the production route and safe cloud configuration through the owner access boundary; interactive Google identity and cross-device product review remain for the product owner.
+
+## August 22, 2026 — Friends & Family Alpha access research
+
+**Status:** Recommendation documented only. No hosting, Sites access, OAuth, Supabase, deployment, purchase, or tester-access change is authorized or implemented.
+
+### Recommended access approach
+
+Retain the current OpenAI Sites deployment and Supabase architecture. Before changing Sites from owner-only to public, implement an application-level, deny-by-default alpha allowlist enforced in Supabase Auth, application APIs, and database authorization. Once that gate passes automated and production security tests, make only the Sites shell public so invited testers can reach Google sign-in. The RoamPilot account gate—not possession of the URL—must determine who can create or use an account.
+
+The current Sites project cannot directly invite external viewers: its verified access configuration reports owner-only custom access, zero external visitors, `external_visitor_invites_enabled: false`, and only `custom` or `public` as available access modes. Therefore, Sites alone cannot provide a 5–15-person invite list under the current workspace policy. Public Sites without the RoamPilot allowlist and API hardening is not acceptable.
+
+### Required alpha-access controls
+
+- Add a private alpha-tester allowlist keyed by normalized Google email, with status, invitation/removal timestamps, optional bound user ID, inviter and audit metadata.
+- Configure a Supabase **Before User Created** Postgres auth hook to reject new Google users whose email is not active on the allowlist. Grant hook execution only to `supabase_auth_admin`; revoke it from `anon`, `authenticated` and `public`.
+- Bind the allowlist entry to the new `auth.users` ID during account creation and require active alpha access after every sign-in. The product owner's existing account must be seeded before enabling the hook.
+- Add a restrictive active-alpha predicate to customer-data access so a removed tester cannot continue using a still-valid token directly against Supabase. Preserve all existing household membership and role predicates; alpha access supplements rather than replaces tenant isolation.
+- Require a valid Supabase user session and active alpha status on every server API route, including discovery, route planning and trip-data endpoints. Do not leave paid or quota-limited provider endpoints anonymously callable after the Sites shell becomes public.
+- Add an Owner-only Alpha Access screen or equivalently controlled operational workflow for adding, viewing and revoking tester emails. Testers receive no infrastructure or administrative access.
+- Log invite, activation, revocation and support-access actions without storing OAuth tokens or secrets.
+- Keep Google as the only visible alpha sign-in method. Apple and email OTP remain deferred.
+
+### Invite, removal and shutdown operations
+
+**Invite:** The product owner enters a tester's exact Google email in the protected Alpha Access control, then sends the production URL using ordinary personal communication. The tester signs in with that same Google identity and creates a private household. No Supabase, GitHub, Sites or development invitation is sent.
+
+**Remove:** Mark the tester revoked, revoke their Supabase sessions, and verify the active-alpha database restriction blocks direct access. Preserve their customer data under the approved retention policy unless deletion is separately requested and authorized.
+
+**Shut down the alpha:** Set a global alpha kill switch to closed, revoke tester sessions, and return Sites to owner-only custom access. Keep the database intact for recovery and review. Test the shutdown procedure before inviting testers.
+
+### OAuth and hosting configuration
+
+For the recommended Sites approach, the production hostname does not change. Google's authorized JavaScript origin, Google's Supabase callback URI, Supabase Site URL, Supabase redirect allowlist entry and the RoamPilot `/auth/callback` path remain unchanged. The existing Google callback remains `https://bjsqjpetnomtvmovqwhr.supabase.co/auth/v1/callback`; Google must never be pointed directly at the RoamPilot application callback.
+
+If hosting moves later, add the new HTTPS origin to Google, set the new Supabase Site URL, add the exact new `<origin>/auth/callback` redirect, and keep the Google redirect URI pointed at the same Supabase project callback. Retain the old origin only during a controlled cutover, then remove it.
+
+### Hosting alternatives
+
+1. **Recommended: current Sites + Supabase alpha gate.** No new hosting vendor or domain and expected zero incremental hosting cost. Main tradeoff: the Sites shell becomes public, so RoamPilot must authenticate and authorize all application and API access itself before the Sites policy changes.
+2. **Fallback: Cloudflare Workers on a `workers.dev` hostname + Cloudflare Access.** No permanent domain is required. Workers Free includes 100,000 requests per day; Cloudflare Zero Trust Free supports up to 50 users. Access can protect a Worker or `workers.dev` hostname with an email allowlist. This provides a strong outer gate but introduces another vendor, deployment path, access-control plane and potentially a second sign-in experience. The existing vinext/Cloudflare-compatible build reduces but does not eliminate migration testing. Workers Paid begins at approximately $5/month if required.
+3. **Not recommended for this alpha: Vercel.** Vercel Hobby is restricted to personal, non-commercial use; Pro starts at approximately $20/month. It adds cost and migration work without solving tenant authorization better than the recommended approach.
+
+Current Supabase Pro remains approximately $25/month and already covers far more than 5–15 alpha users. Expected incremental cost for the recommended path is $0 unless usage or external API consumption exceeds existing allowances.
+
+### Feedback and incorrect-data reporting
+
+Before alpha, add an authenticated in-app **Send Feedback / Report Incorrect Data** control. Store reports in Supabase with reporter user/household, category, screen, destination/campground identifier, structured field being challenged, free-text details, current source/confidence/freshness snapshot, timestamps and review status. Users may create and view their own reports; only the product owner or an explicitly authorized support role may review all reports. Do not collect screenshots or precise location by default. Initial categories should include incorrect campground data, incorrect rig fit, route concern, missing campground, price/availability issue, usability problem and general feedback.
+
+### Mandatory tester warnings
+
+- Routing is standard-vehicle planning only and **is not RV-safe**. It does not yet guarantee clearance for height, weight, width, length, propane or road restrictions.
+- Campground fit, availability, hookups, price, weather, events, fuel estimates and site details may be mock, incomplete, stale or estimated unless specifically labeled otherwise.
+- RoamPilot does not book or process campground payments.
+- Testers must independently verify routes, restrictions, campsite dimensions, availability and safety-critical rig facts.
+- Alpha data may be reset or corrected, with notice and according to the approved retention policy.
+
+### High-priority campground-discovery gap
+
+Production testing proved that current discovery does **not** provide the intended comprehensive campground coverage across the entire selected maximum-drive-time area. Current live discovery draws from National Park Service and Recreation.gov/RIDB federal recreation records. It does not reliably include state park systems, private/commercial campgrounds, county or municipal parks, independent RV parks, KOA-style proprietary networks, membership networks or all boondocking sources.
+
+In the observed 1.5-hour Pendleton search, providers returned 21 candidate recreation records, but road-time qualification removed all of them and the UI displayed “0 trips worth taking.” That meant zero qualifying records from the connected federal datasets, not zero real campgrounds in the area. The current wording overstates coverage and can mislead users. Treat complete-area campground discovery, honest coverage/source messaging, separate **View All Campgrounds**, nearest-alternative behavior and broader lawful data integrations as a high-priority upcoming product gap. Do not represent this gap as resolved.
+
+### Approval decisions before implementation
+
+1. Approve current Sites plus a Supabase-enforced alpha allowlist as the preferred approach, or select Cloudflare Workers + Access for an additional outer gate.
+2. Approve making the Sites shell public only after deny-by-default signup, API and database tests pass.
+3. Approve the normalized-email allowlist and Supabase Before User Created hook.
+4. Approve an Owner-only Alpha Access management screen versus a manual owner-operated database procedure.
+5. Approve removal behavior: immediate session revocation with retained data unless separately deleted.
+6. Approve the global alpha shutdown procedure.
+7. Approve the in-app feedback/incorrect-data report scope and whether screenshots remain excluded initially.
+8. Approve the mandatory tester warning and acknowledgement copy.
+9. Approve the campground-discovery gap as a high-priority development input without expanding this access phase into fixing discovery.
 
 ## August 20, 2026 — Phase 1A research and architecture completed
 
