@@ -81,6 +81,12 @@ test("validation-stage sign-in exposes Google while keeping deferred providers o
   assert.doesNotMatch(gate, /Email me a code/);
 });
 
+test("OAuth callback performs exactly one explicit PKCE exchange", async () => {
+  const callback = await readFile(new URL("../app/auth/callback/page.tsx", import.meta.url), "utf8");
+  assert.match(callback, /exchangeCodeForSession\(code\)/);
+  assert.match(callback, /detectSessionInUrl:\s*false/);
+});
+
 test("My Rig makes no RV-safe routing or browser-only persistence claim", async () => {
   const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
   assert.match(page, /RV-aware routing is not active yet/);

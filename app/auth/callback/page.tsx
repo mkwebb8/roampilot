@@ -14,7 +14,16 @@ export default function AuthCallbackPage() {
         const response = await fetch("/api/cloud-config", { cache: "no-store" });
         const config = await response.json() as { configured: boolean; url?: string; publishableKey?: string };
         if (!config.configured || !config.url || !config.publishableKey) throw new Error("RoamPilot cloud authentication is not configured.");
-        const client = createClient(config.url, config.publishableKey, { auth: { flowType: "pkce", persistSession: true } });
+        // This page owns the PKCE exchange explicitly. Disabling URL auto-detection
+        // prevents supabase-js from racing this call and consuming the verifier first.
+        const client = createClient(config.url, config.publishableKey, {
+          auth: {
+            flowType: "pkce",
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: false,
+          },
+        });
         const { error: exchangeError } = await client.auth.exchangeCodeForSession(code);
         if (exchangeError) throw exchangeError;
         if (!cancelled) window.location.replace("/");
