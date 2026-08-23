@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import { recommendTrips } from "../lib/recommendations.ts";
 import { defaultFilters, trips } from "../lib/seed.ts";
 import { mergeProviderCandidates, qualifyRoutes } from "../lib/services/route-resilience.ts";
@@ -15,15 +16,14 @@ async function requestWorker(path = "/", init) {
 
 const render = () => requestWorker();
 
-test("server-renders RoamPilot product shell", async () => {
+test("server-renders the private-beta account boundary", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>RoamPilot RV - Intelligent trip discovery<\/title>/i);
-  assert.match(html, /Where are we/);
-  assert.match(html, /Find My Next Trip/);
-  assert.match(html, /Autumn Ridge/);
+  assert.match(html, /Preparing your private garage/i);
+  assert.match(html, /ROAMPILOT PRIVATE BETA/i);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
 
@@ -55,6 +55,38 @@ test("excludes destinations beyond a shorter drive window", () => {
       .filter(({ driveMinutes }) => driveMinutes > maxDriveHours * 60 + 20)
       .every(({ id }) => !recommendationIds.has(id)),
   );
+});
+
+test("cloud configuration never exposes a secret service key", async () => {
+  const response = await requestWorker("/api/cloud-config");
+  assert.equal(response.status, 200);
+  const payload = await response.json();
+  assert.equal(payload.configured, false);
+  assert.equal("serviceRoleKey" in payload, false);
+  assert.equal("secretKey" in payload, false);
+});
+
+test("Phase 1B schema enables RLS on every customer-data table", async () => {
+  const migration = await readFile(new URL("../supabase/migrations/20260822021041_phase_1b_accounts_cloud.sql", import.meta.url), "utf8");
+  const customerTables = ["profiles", "households", "household_memberships", "rvs", "tow_vehicles", "rig_pairings", "trips", "trip_snapshots", "migration_receipts", "audit_events", "data_exports", "deletion_requests"];
+  for (const table of customerTables) assert.match(migration, new RegExp(`alter table public\\.${table} enable row level security`, "i"));
+  assert.doesNotMatch(migration, /auth\.role\(\)/i);
+});
+
+test("validation-stage sign-in exposes Google while keeping deferred providers out of the UI", async () => {
+  const gate = await readFile(new URL("../app/account-gate.tsx", import.meta.url), "utf8");
+  assert.match(gate, /Continue with Google/);
+  assert.match(gate, /Apple sign-in and email codes remain planned/);
+  assert.doesNotMatch(gate, /Continue with Apple/);
+  assert.doesNotMatch(gate, /Email me a code/);
+});
+
+test("My Rig makes no RV-safe routing or browser-only persistence claim", async () => {
+  const page = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
+  assert.match(page, /RV-aware routing is not active yet/);
+  assert.match(page, /synchronized across signed-in devices/);
+  assert.doesNotMatch(page, /safer routing/);
+  assert.doesNotMatch(page, /stored only in this browser/);
 });
 
 test("increasing the drive window can add discovered destinations", () => {
