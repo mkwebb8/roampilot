@@ -103,7 +103,7 @@ test("increasing the drive window can add discovered destinations", () => {
   assert.ok(shortWindow.every(({ id }) => longWindow.some((trip) => trip.id === id)));
 });
 
-test("discovery clearly labels curated fallback when provider keys are absent", async () => {
+test("discovery API rejects unauthenticated requests before provider work", async () => {
   const response = await requestWorker("/api/discover", {
     method: "POST",
     headers: { "content-type": "application/json" },
@@ -111,10 +111,25 @@ test("discovery clearly labels curated fallback when provider keys are absent", 
   });
   const data = await response.json();
 
-  assert.equal(response.status, 200);
-  assert.equal(data.mode, "fallback");
-  assert.match(data.message, /curated fallback/i);
-  assert.deepEqual(data.providers.map(({ status }) => status), ["missing_key", "missing_key"]);
+  assert.equal(response.status, 401);
+  assert.match(data.error, /authentication required/i);
+});
+
+test("every protected planning API enforces the alpha session boundary", async () => {
+  for (const path of ["/api/discover", "/api/trip-data", "/api/route-plan"]) {
+    const response = await requestWorker(path, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+    assert.equal(response.status, 401, path);
+  }
+});
+
+test("alpha warning and missing-campground feedback remain visible in the product", async () => {
+  const [gate, panel] = await Promise.all([
+    readFile(new URL("../app/account-gate.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/account-panel.tsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(gate, /routes are standard-vehicle estimates—not RV-safe routes/i);
+  assert.match(panel, /Missing campground/i);
+  assert.match(panel, /Alpha safety notice/i);
 });
 
 test("routing provider 502 falls back to a conservative estimate", async () => {

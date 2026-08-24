@@ -4,9 +4,11 @@ import { routeBetween } from "../../../lib/services/routing";
 import { getWeather } from "../../../lib/services/weather";
 import { logProviderError } from "../../../lib/services/http";
 import type { Coordinates,LiveTripData } from "../../../lib/types";
+import { requireAlphaAccess } from "../../../lib/server-alpha-auth";
 export const runtime="edge";
 export async function POST(request:Request){
  try{
+  const denied=await requireAlphaAccess(request);if(denied)return denied;
   const body=await request.json() as {start:string;destination:string;coordinates:Coordinates;leave:string;returnDate:string};
   if(!body.start||!body.destination||!body.coordinates)return Response.json({error:"Missing trip fields"},{status:400});
   const [weather,route,campgrounds,events]=await Promise.all([

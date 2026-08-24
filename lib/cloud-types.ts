@@ -37,3 +37,7 @@ export interface MigrationPreview {
   savedTripIds: string[];
   fingerprint: string;
 }
+
+export interface AlphaAccessStatus { allowed: boolean; isAdmin: boolean; programOpen: boolean; testerStatus: "invited" | "active" | "revoked" | "not_invited"; }
+export interface AlphaTester { id: string; email: string; status: "invited" | "active" | "revoked"; user_id: string | null; invited_at: string; activated_at: string | null; revoked_at: string | null; }
+export type FeedbackCategory = "missing_campground" | "incorrect_campground_data" | "routing_issue" | "rig_fit_issue" | "bug" | "feature_request" | "other";

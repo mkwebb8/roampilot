@@ -1,6 +1,6 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { RigProfile, ScoredTrip } from "./types";
-import type { CloudRig, CloudTrip, HouseholdMember, HouseholdMembership, HouseholdRole, MigrationPreview } from "./cloud-types";
+import type { AlphaAccessStatus, AlphaTester, CloudRig, CloudTrip, FeedbackCategory, HouseholdMember, HouseholdMembership, HouseholdRole, MigrationPreview } from "./cloud-types";
 
 const MM_PER_FOOT = 304.8;
 const KG_PER_POUND = 0.45359237;
@@ -9,6 +9,27 @@ const L_PER_100KM_PER_MPG = 235.214583;
 
 export class CloudRepository {
   constructor(private readonly client: SupabaseClient) {}
+
+  async alphaStatus(): Promise<AlphaAccessStatus> {
+    const { data, error } = await this.client.rpc("alpha_access_status");
+    if (error) throw error;
+    return data as AlphaAccessStatus;
+  }
+
+  async alphaTesters(): Promise<AlphaTester[]> {
+    const { data, error } = await this.client.rpc("list_alpha_testers");
+    if (error) throw error;
+    return (data ?? []) as AlphaTester[];
+  }
+
+  async addAlphaTester(email: string): Promise<void> { const { error } = await this.client.rpc("add_alpha_tester", { tester_email: email }); if (error) throw error; }
+  async revokeAlphaTester(id: string): Promise<void> { const { error } = await this.client.rpc("revoke_alpha_tester", { tester_id: id }); if (error) throw error; }
+  async setAlphaOpen(open: boolean): Promise<void> { const { error } = await this.client.rpc("set_alpha_open", { next_open: open }); if (error) throw error; }
+  async submitFeedback(householdId: string, category: FeedbackCategory, details: string, pagePath: string): Promise<void> {
+    const user = await this.user();
+    const { error } = await this.client.from("feedback_reports").insert({ user_id: user.id, household_id: householdId, category, details, page_path: pagePath });
+    if (error) throw error;
+  }
 
   async memberships(): Promise<HouseholdMembership[]> {
     const { data, error } = await this.client

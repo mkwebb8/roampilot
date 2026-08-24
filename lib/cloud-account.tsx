@@ -3,11 +3,11 @@
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { CloudRepository } from "./cloud-repository";
-import type { CloudRig, CloudTrip, HouseholdMember, HouseholdMembership, HouseholdRole, MigrationPreview } from "./cloud-types";
+import type { AlphaAccessStatus, AlphaTester, CloudRig, CloudTrip, FeedbackCategory, HouseholdMember, HouseholdMembership, HouseholdRole, MigrationPreview } from "./cloud-types";
 import type { RigProfile, ScoredTrip } from "./types";
 
 interface CloudContextValue {
-  status: "loading" | "unconfigured" | "signed-out" | "onboarding" | "ready" | "error";
+  status: "loading" | "unconfigured" | "signed-out" | "access-denied" | "alpha-closed" | "onboarding" | "ready" | "error";
   error: string;
   session: Session | null;
   memberships: HouseholdMembership[];
@@ -17,6 +17,8 @@ interface CloudContextValue {
   rig: CloudRig | null;
   savedTrips: CloudTrip[];
   migrationPreview: MigrationPreview | null;
+  alphaStatus: AlphaAccessStatus | null;
+  alphaTesters: AlphaTester[];
   signInSocial(provider: "google" | "apple"): Promise<void>;
   requestOtp(email: string): Promise<void>;
   verifyOtp(email: string, token: string): Promise<void>;
@@ -34,6 +36,11 @@ interface CloudContextValue {
   dismissMigration(): void;
   exportData(): Promise<Record<string, unknown>>;
   requestDeletion(): Promise<void>;
+  addAlphaTester(email: string): Promise<void>;
+  revokeAlphaTester(id: string): Promise<void>;
+  setAlphaOpen(open: boolean): Promise<void>;
+  submitFeedback(category: FeedbackCategory, details: string): Promise<void>;
+  apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response>;
   refresh(): Promise<void>;
 }
 
@@ -50,6 +57,8 @@ export function CloudAccountProvider({ children }: { children: React.ReactNode }
   const [rig, setRig] = useState<CloudRig | null>(null);
   const [savedTrips, setSavedTrips] = useState<CloudTrip[]>([]);
   const [migrationPreview, setMigrationPreview] = useState<MigrationPreview | null>(null);
+  const [alphaStatus, setAlphaStatus] = useState<AlphaAccessStatus | null>(null);
+  const [alphaTesters, setAlphaTesters] = useState<AlphaTester[]>([]);
   const repository = useMemo(() => client ? new CloudRepository(client) : null, [client]);
 
   useEffect(() => {
@@ -77,6 +86,9 @@ export function CloudAccountProvider({ children }: { children: React.ReactNode }
     if (!repository || !session) { setStatus(client ? "signed-out" : "loading"); return; }
     try {
       setError("");
+      const nextAlphaStatus = await repository.alphaStatus();
+      setAlphaStatus(nextAlphaStatus);
+      if (!nextAlphaStatus.allowed) { setStatus(nextAlphaStatus.programOpen ? "access-denied" : "alpha-closed"); return; }
       const [profile, nextMemberships] = await Promise.all([repository.profile(), repository.memberships()]);
       setMemberships(nextMemberships);
       if (!nextMemberships.length) { setActiveHouseholdId(null); setStatus("onboarding"); return; }
@@ -89,6 +101,7 @@ export function CloudAccountProvider({ children }: { children: React.ReactNode }
       setRig(nextRig);
       setSavedTrips(trips);
       setHouseholdMembers(members);
+      setAlphaTesters(nextAlphaStatus.isAdmin ? await repository.alphaTesters() : []);
       setMigrationPreview(readMigrationPreview(session.user.id));
       setStatus("ready");
     } catch (reason) { setError(message(reason)); setStatus("error"); }
@@ -102,7 +115,7 @@ export function CloudAccountProvider({ children }: { children: React.ReactNode }
   const value = useMemo<CloudContextValue>(() => ({
     status, error, session, memberships, activeHouseholdId,
     activeMembership: memberships.find((item) => item.household_id === activeHouseholdId) ?? null, householdMembers,
-    rig, savedTrips, migrationPreview,
+    rig, savedTrips, migrationPreview, alphaStatus, alphaTesters,
     async signInSocial(provider) {
       if (!client) return;
       const redirectTo = `${window.location.origin}/auth/callback`;
@@ -144,8 +157,18 @@ export function CloudAccountProvider({ children }: { children: React.ReactNode }
     dismissMigration() { if (session) localStorage.setItem(`roampilot-migration-dismissed:${session.user.id}`, new Date().toISOString()); setMigrationPreview(null); },
     async exportData() { if (!repository || !activeHouseholdId) return {}; return repository.exportHousehold(activeHouseholdId); },
     async requestDeletion() { if (!repository) return; await repository.requestAccountDeletion(); if (client) await client.auth.signOut({ scope: "global" }); setStatus("signed-out"); },
+    async addAlphaTester(email) { if (!repository) return; await repository.addAlphaTester(email); setAlphaTesters(await repository.alphaTesters()); },
+    async revokeAlphaTester(id) { if (!repository) return; await repository.revokeAlphaTester(id); setAlphaTesters(await repository.alphaTesters()); },
+    async setAlphaOpen(open) { if (!repository) return; await repository.setAlphaOpen(open); const next = await repository.alphaStatus(); setAlphaStatus(next); setAlphaTesters(await repository.alphaTesters()); },
+    async submitFeedback(category, details) { if (!repository || !activeHouseholdId) throw new Error("Select a household first."); await repository.submitFeedback(activeHouseholdId, category, details, window.location.pathname); },
+    async apiFetch(input, init) {
+      if (!session?.access_token) throw new Error("Sign in to continue.");
+      const headers = new Headers(init?.headers);
+      headers.set("Authorization", `Bearer ${session.access_token}`);
+      return fetch(input, { ...init, headers });
+    },
     refresh,
-  }), [status, error, session, memberships, householdMembers, activeHouseholdId, rig, savedTrips, migrationPreview, client, repository, refresh]);
+  }), [status, error, session, memberships, householdMembers, activeHouseholdId, rig, savedTrips, migrationPreview, alphaStatus, alphaTesters, client, repository, refresh]);
 
   return <CloudContext.Provider value={value}>{children}</CloudContext.Provider>;
 }
