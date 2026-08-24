@@ -14,9 +14,12 @@ RoamPilot is a mobile-first RV trip discovery application for travelers who know
 - Cross-device cloud synchronization for the active household
 - Household data export and account-deletion request workflow
 - Product-wide data-confidence values: Verified, Reported, Estimated, and Unknown
+- Deny-by-default Friends & Family Alpha allowlist, signup hook, global kill switch, protected planning APIs, revocation controls, and authenticated feedback
 - Responsive mobile-first UI and installable PWA metadata
 
 Google is the active authentication path for internal and close-circle validation. Apple and six-digit email OTP remain implemented architectural paths but are intentionally unavailable in the current UI: Apple is deferred until broader iPhone/TestFlight/App Store testing, and email OTP is deferred until RoamPilot has a permanent domain, custom SMTP, and an editable OTP template. These remain V1 requirements rather than implementation failures. Transactional email stays behind an adapter boundary. RoamPilot does not yet provide RV-aware routing and makes no RV-safe route claim.
+
+The Friends & Family Alpha gate is deployed but remains closed. The Sites shell is still owner-only and no external tester has been invited. Opening tester access requires the product-owner launch review and a separate Sites access decision.
 
 ## Architecture
 
@@ -83,4 +86,4 @@ See [Private Beta Data Operations](docs/private-beta-data-operations.md) for ten
 
 Production is hosted through OpenAI Sites. Runtime environment values belong in Sites environment configuration, not Git. The delivery gate for every phase is: implement → validate automated tests → deploy → production test → product-owner review → fix issues → update the Master Product Spec/current status → commit/push → approve the next phase.
 
-Phase 1B must stop at the production-candidate/product-owner review checkpoint. Phase 2 does not begin automatically.
+Phase 1B is closed. Friends & Family Alpha access work does not begin Phase 2, and Phase 2 does not begin automatically.

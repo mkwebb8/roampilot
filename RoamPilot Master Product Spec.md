@@ -27,14 +27,14 @@ When this document conflicts with an older chat, summary, prototype note, or inf
 
 ## Snapshot
 
-**Snapshot date:** August 22, 2026  
-**Overall status:** Phase 1B approved and complete  
+**Snapshot date:** August 24, 2026
+**Overall status:** Phase 1B complete; Friends & Family Alpha access production candidate deployed with alpha closed
 **Repository:** https://github.com/mkwebb8/roampilot  
 **Live app:** https://roampilot-rv.mkwebb8.chatgpt.site  
-**Deployed production candidate:** Sites version 7 at Git commit `1827ba0` — Fix duplicate OAuth PKCE exchange
+**Deployed production candidate:** Sites version 8 at Git commit `3b42428` — Add Friends & Family Alpha access controls
 **Hosted access:** Private, owner-only
 
-The version 7 production application and its validated source use commit `1827ba0`. Google authentication, household onboarding, Owner authorization, cloud My Rig persistence, saved-trip persistence/reopening, same-account cross-device synchronization, household export, sign-out, and repeat sign-in have completed successfully in production. Genuine second-user invitations and disposable-account deletion testing are explicitly deferred because the current Sites deployment remains owner-only. The product owner formally approved and closed Phase 1B on August 22, 2026. Phase 2 has not begun.
+The version 8 production application and its validated source use commit `3b42428`. Phase 1B remains approved and closed. The Friends & Family Alpha access layer is deployed with the global alpha switch closed and Sites still owner-only. No external tester has been invited. The deployed layer adds the private tester allowlist, owner administration screen, Supabase Before User Created hook, restrictive active-alpha database policies layered over household RLS, authenticated planning APIs, prompt revocation enforcement, authenticated feedback with Missing Campground as a first-class category, and an acknowledged safety warning that remains accessible from the account panel. Phase 2 has not begun.
 
 ## Phase 1B validation-stage decision
 
@@ -1767,9 +1767,27 @@ These ideas remain preserved. They are not rejected; they are outside V1 unless 
 - Phase 1B validation-stage checkpoints are complete within the approved gate. Formal phase closure requires explicit product-owner approval; Phase 2 and Friends & Family Alpha access work have not begun.
 - The product owner subsequently approved Phase 1B. The phase is closed; Friends & Family Alpha access evaluation is the next review activity, and neither access changes nor Phase 2 implementation are authorized by this approval.
 
+## August 24, 2026 — Friends & Family Alpha access production candidate
+
+**Status:** Implemented and deployed privately as Sites version 8 at commit `3b42428`. Global alpha access is closed, Sites remains owner-only, and no external tester has been invited.
+
+- Seeded and verified the existing production owner before enabling the Supabase Before User Created hook. The hook permits allowlisted emails and rejects unknown emails; only `supabase_auth_admin` can execute it.
+- Added private alpha administrators, tester records, normalized email matching, invited/active/revoked lifecycle states, and a singleton global alpha switch that starts closed.
+- Added restrictive active-alpha policies to every exposed customer-data table while preserving the existing household membership and role predicates.
+- Added authenticated active-alpha enforcement to Discover, trip-data, and route-plan APIs. `/api/cloud-config` remains intentionally public and exposes only the Supabase URL and publishable key required to begin authentication.
+- Revocation immediately removes active-alpha authorization, prevents refresh by deleting the tester's Supabase sessions, and leaves household data subject to the approved retention/deletion policy. A still-unexpired JWT cannot pass the database or application active-alpha checks.
+- Added the intentionally simple Owner-only Alpha Access panel: add a tester email, view status, revoke, close alpha, and reopen alpha. Adding an email does not send a message or grant infrastructure access.
+- Added the mandatory first-use alpha warning and an always-accessible safety notice. The warning states that campground coverage is incomplete and routes are standard-vehicle estimates, not RV-safe.
+- Added authenticated feedback/reporting with Missing Campground, incorrect campground data, routing issue, rig-fit issue, app problem, feature idea, and other categories.
+- Automated validation passes 17 tests plus lint, type checking, and the production build. Production database checks passed for owner access while closed, unknown-user denial, cross-household denial, immediate revocation, kill-switch closure/reopen behavior, hook allow/deny behavior, and feedback insert/read isolation. All three protected production planning APIs return `401` without a Supabase bearer session even when the outer Sites gate is bypassed for testing.
+- Supabase security advisors report only intentional authenticated `SECURITY DEFINER` RPC warnings with explicit caller/role checks, plus the pre-existing leaked-password warning that is not applicable to the Google-only/passwordless validation UI. New foreign-key advisor findings were resolved. Unused-index notices are expected on the low-volume beta database.
+- The high-priority comprehensive campground-discovery gap remains unresolved by design.
+
+The launch gate remains closed pending product-owner review. The next access action, if approved, is to add the first tester email while Sites is still private, reopen the alpha, then separately make the Sites shell public so the tester can reach Google sign-in. Tester removal or emergency shutdown uses the Alpha Access panel; returning Sites to owner-only remains the outer shutdown option.
+
 ## August 22, 2026 — Friends & Family Alpha access research
 
-**Status:** Recommendation documented only. No hosting, Sites access, OAuth, Supabase, deployment, purchase, or tester-access change is authorized or implemented.
+**Status:** Research and decisions approved; superseded operationally by the August 24 production candidate above. The approach and constraints below remain the rationale and launch policy.
 
 ### Recommended access approach
 
